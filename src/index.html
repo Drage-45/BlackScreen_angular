@@ -1,13 +1,32 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <title>BlackScreen</title>
-  <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <title>BlackScreen Cinema</title>
 </head>
 <body>
-  <app-root></app-root>
+  <header class="topbar">
+    <a class="brand" href="#" id="brand">Black<span>Screen</span></a>
+    <nav class="actions">
+      <button class="btn ghost" id="themeBtn" type="button" aria-label="Cambiar tema">Modo claro</button>
+      <div id="userZone"></div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Cartelera</h1>
+      <p>Elige una pelicula, mira el trailer y reserva tus asientos.</p>
+    </section>
+    <section id="movies" class="grid"></section>
+  </main>
+
+  <footer class="footer">BlackScreen Cinema &middot; Proyecto academico</footer>
+
+  <div id="modal" class="overlay" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+  <div id="printArea" aria-hidden="true"></div>
+
 </body>
 </html>
