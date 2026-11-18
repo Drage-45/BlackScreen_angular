@@ -1,0 +1,63 @@
+<section class="hero">
+  <h1>Gestión de Películas</h1>
+  <p>Administra el catálogo de películas, pósters, tráilers y sinopsis.</p>
+</section>
+
+<form (ngSubmit)="guardarPelicula()" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; background: var(--surface); padding: 18px; border-radius: 12px; border: 1px solid var(--border);">
+  <input type="text" name="titulo" [(ngModel)]="peliculaActual.titulo" placeholder="Título" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; flex: 1; min-width: 180px;">
+  <input type="text" name="genero" [(ngModel)]="peliculaActual.genero" placeholder="Género" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; flex: 1; min-width: 150px;">
+  <input type="number" name="duracion" [(ngModel)]="peliculaActual.duracion" placeholder="Duración (min)" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: 150px;">
+
+  <select name="clasificacion" [(ngModel)]="peliculaActual.clasificacion" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px;">
+    <option value="" disabled>Seleccione Clasificación</option>
+    <option value="General">General</option>
+    <option value="Mayores de 12">Mayores de 12</option>
+    <option value="Mayores de 18">Mayores de 18</option>
+  </select>
+
+  <input type="text" name="posterUrl" [(ngModel)]="peliculaActual.posterUrl" placeholder="URL Póster (ej. https://...)" style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; flex: 1; min-width: 220px;">
+  <input type="text" name="trailerUrl" [(ngModel)]="peliculaActual.trailerUrl" placeholder="ID o URL Tráiler YouTube" style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; flex: 1; min-width: 220px;">
+  <input type="text" name="sinopsis" [(ngModel)]="peliculaActual.sinopsis" placeholder="Sinopsis de la película" style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: 100%;">
+
+  <button class="btn" type="submit">{{ editando ? 'Actualizar Película' : 'Crear Película' }}</button>
+
+  @if (editando) {
+    <button class="btn accent" type="button" (click)="resetForm()">Cancelar</button>
+  }
+</form>
+
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+  <table cellpadding="12" style="width: 100%; border-collapse: collapse; text-align: left;">
+    <thead style="background-color: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border);">
+      <tr>
+        <th>ID</th>
+        <th>Título</th>
+        <th>Género</th>
+        <th>Duración</th>
+        <th>Clasificación</th>
+        <th>Tráiler</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (pelicula of peliculas; track pelicula.id) {
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td>{{ pelicula.id }}</td>
+          <td><strong>{{ pelicula.titulo }}</strong></td>
+          <td>{{ pelicula.genero }}</td>
+          <td>{{ pelicula.duracion }} min</td>
+          <td>{{ pelicula.clasificacion }}</td>
+          <td style="color: var(--muted); font-size: 0.85rem;">{{ pelicula.trailerUrl || '—' }}</td>
+          <td>
+            <button class="btn ghost small" (click)="editar(pelicula)" style="margin-right: 6px;">Editar</button>
+            <button class="btn accent small" (click)="eliminar(pelicula.id)">Eliminar</button>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7" class="empty">No hay películas registradas.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

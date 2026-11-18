@@ -1,0 +1,63 @@
+<section class="hero">
+  <h1>Gestión de Funciones</h1>
+  <p>Programa los horarios, salas, precios y cupos disponibles por película.</p>
+</section>
+
+<form (ngSubmit)="guardarFuncion()" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; background: var(--surface); padding: 18px; border-radius: 12px; border: 1px solid var(--border);">
+  <select name="peliculaId" [(ngModel)]="funcionActual.pelicula.id" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; flex: 1; min-width: 200px;">
+    <option value="" disabled>Seleccione Película</option>
+    @for (pelicula of peliculas; track pelicula.id) {
+      <option [ngValue]="pelicula.id">{{ pelicula.titulo }}</option>
+    }
+  </select>
+
+  <input type="date" name="fecha" [(ngModel)]="funcionActual.fecha" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px;">
+  <input type="time" name="hora" [(ngModel)]="funcionActual.hora" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px;">
+  <input type="text" name="sala" [(ngModel)]="funcionActual.sala" placeholder="Sala (ej. 1)" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: 130px;">
+  <input type="number" name="precio" [(ngModel)]="funcionActual.precio" placeholder="Precio ($)" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: 140px;">
+  <input type="number" name="cupos" [(ngModel)]="funcionActual.cuposDisponibles" placeholder="Cupos" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: 130px;">
+
+  <button class="btn" type="submit">
+    {{ editando ? 'Actualizar Función' : 'Crear Función' }}
+  </button>
+
+  @if (editando) {
+    <button class="btn accent" type="button" (click)="resetForm()">Cancelar</button>
+  }
+</form>
+
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+  <table cellpadding="12" style="width: 100%; border-collapse: collapse; text-align: left;">
+    <thead style="background-color: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border);">
+      <tr>
+        <th>ID</th>
+        <th>Película</th>
+        <th>Fecha y Hora</th>
+        <th>Sala</th>
+        <th>Precio</th>
+        <th>Cupos Disponibles</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (funcion of funciones; track funcion.id) {
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td>{{ funcion.id }}</td>
+          <td><strong>{{ funcion.pelicula?.titulo }}</strong></td>
+          <td>{{ funcion.fecha }} &middot; {{ funcion.hora }}</td>
+          <td>{{ funcion.sala }}</td>
+          <td>$ {{ funcion.precio }}</td>
+          <td>{{ funcion.cuposDisponibles }}</td>
+          <td>
+            <button class="btn ghost small" (click)="editar(funcion)" style="margin-right: 6px;">Editar</button>
+            <button class="btn accent small" (click)="eliminar(funcion.id)">Eliminar</button>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7" class="empty">No hay funciones programadas. Ve a Películas para crear una.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

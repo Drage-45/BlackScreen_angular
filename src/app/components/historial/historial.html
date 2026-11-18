@@ -1,0 +1,35 @@
+<section class="hero">
+  <h1>Historial General de Ventas</h1>
+  <p>Registro completo de boletas vendidas y totales recaudados en taquilla.</p>
+</section>
+
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+  <table cellpadding="12" style="width: 100%; border-collapse: collapse; text-align: left;">
+    <thead style="background-color: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border);">
+      <tr>
+        <th>ID Ticket</th>
+        <th>Película</th>
+        <th>Fecha de Función</th>
+        <th>Sala</th>
+        <th style="text-align: center;">Boletas Compradas</th>
+        <th>Total Pagado</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (compra of compras; track compra.id) {
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="font-weight: bold; color: var(--primary);"># {{ compra.id }}</td>
+          <td><strong>{{ compra.funcion?.pelicula?.titulo }}</strong></td>
+          <td>{{ compra.funcion?.fecha }} &middot; {{ compra.funcion?.hora }}</td>
+          <td>{{ compra.funcion?.sala }}</td>
+          <td style="text-align: center;">{{ compra.cantidadBoletos }}</td>
+          <td style="color: #4CAF50; font-weight: bold;">$ {{ compra.valorTotal ?? compra.total }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6" class="empty">Aún no se han registrado ventas en el sistema.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

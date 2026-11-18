@@ -1,0 +1,167 @@
+<section class="hero">
+  <h1>Cartelera</h1>
+  <p>Elige una película, mira el tráiler y adquiere tus boletos por admisión general.</p>
+</section>
+
+<section id="movies" class="grid">
+  @for (pelicula of peliculasConFunciones; track pelicula.id) {
+    <article class="card">
+      <div class="poster" [style.background-image]="obtenerEstiloPoster(pelicula)">
+        <span class="tag">{{ pelicula.genero }}</span>
+        <h3>{{ pelicula.titulo }}</h3>
+      </div>
+      <div class="card-body">
+        <div class="meta">
+          <span>{{ pelicula.duracion }} min</span>
+          <span>Clasificación {{ pelicula.clasificacion }}</span>
+        </div>
+        <button class="btn" type="button" (click)="abrirModal(pelicula)">
+          Ver detalles y comprar
+        </button>
+      </div>
+    </article>
+  } @empty {
+    <p class="empty" style="grid-column: 1 / -1;">
+      No hay películas registradas en cartelera. Ve al módulo "Películas" para agregar una.
+    </p>
+  }
+</section>
+
+<div id="modal" class="overlay" [hidden]="!modalAbierto" (click)="cerrarModal()">
+  @if (peliculaSeleccionada) {
+    <div class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <button class="close" type="button" aria-label="Cerrar" (click)="cerrarModal()">&times;</button>
+
+      @if (!boletoGenerado) {
+        <h2>{{ peliculaSeleccionada.titulo }}</h2>
+
+        @if (urlTrailerSegura) {
+          <iframe
+            class="trailer"
+            [src]="urlTrailerSegura"
+            [title]="'Tráiler de ' + peliculaSeleccionada.titulo"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            loading="lazy">
+          </iframe>
+        }
+
+        <p class="synopsis">
+          {{ peliculaSeleccionada.sinopsis || 'Disfruta esta proyección en pantalla gigante con sonido envolvente en BlackScreen Cinema.' }}
+          <br><br>
+          {{ peliculaSeleccionada.genero }} &middot; {{ peliculaSeleccionada.duracion }} min &middot; Clasificación {{ peliculaSeleccionada.clasificacion }}
+        </p>
+
+        <div class="section-title">Compra de Boletos (Admisión General)</div>
+
+        @if (peliculaSeleccionada.funciones?.length > 0) {
+          <div class="field">
+            <label for="selectFuncion">Selecciona la Función disponible</label>
+            <select
+              id="selectFuncion"
+              name="funcionId"
+              [(ngModel)]="compraActual.funcionId"
+              required>
+              <option value="" disabled>-- Elige fecha, hora y sala --</option>
+              @for (funcion of peliculaSeleccionada.funciones; track funcion.id) {
+                <option [ngValue]="funcion.id" [disabled]="funcion.cuposDisponibles === 0">
+                  {{ funcion.fecha }} a las {{ funcion.hora }} &middot; Sala {{ funcion.sala }} ($ {{ funcion.precio }}) &middot; {{ funcion.cuposDisponibles }} cupos libres
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="inputCantidad">Cantidad de boletas</label>
+            <input
+              id="inputCantidad"
+              type="number"
+              name="cantidadBoletos"
+              [(ngModel)]="compraActual.cantidadBoletos"
+              min="1"
+              required>
+          </div>
+
+          <div class="summary">
+            <div class="info">
+              @if (funcionSeleccionada; as func) {
+                <b>{{ func.fecha }}</b> a las <b>{{ func.hora }}</b> &middot; Sala <b>{{ func.sala }}</b> ({{ func.cuposDisponibles }} disponibles)<br>
+                Boletas: <b>{{ compraActual.cantidadBoletos || 0 }}</b> &middot;
+                Total a pagar: <b style="color: #4CAF50; font-size: 1.15rem;">$ {{ totalAPagar }}</b>
+              } @else {
+                Selecciona un horario para calcular el total a pagar.
+              }
+            </div>
+            <button
+              class="btn accent"
+              type="button"
+              [disabled]="!funcionSeleccionada || !compraActual.cantidadBoletos || compraActual.cantidadBoletos < 1"
+              (click)="realizarCompra()">
+              Comprar boletos
+            </button>
+          </div>
+        } @else {
+          <p class="empty">No hay funciones programadas para esta película.</p>
+        }
+      } @else {
+        <h2>Compra realizada</h2>
+        <div class="ticket-preview">
+          <div class="ticket">
+            <div class="ticket-head">
+              <h1>Black<span>Screen</span></h1>
+              <p>Boleto de entrada</p>
+            </div>
+            <div class="ticket-body">
+              <div class="movie">{{ boletoGenerado.peliculaTitulo }}</div>
+              <div class="ticket-grid">
+                <div><small>Sala</small><strong>{{ boletoGenerado.sala }}</strong></div>
+                <div><small>Boletas</small><strong>{{ boletoGenerado.cantidadBoletos }} (General)</strong></div>
+                <div><small>Fecha</small><strong>{{ boletoGenerado.fecha }}</strong></div>
+                <div><small>Hora</small><strong>{{ boletoGenerado.hora }}</strong></div>
+              </div>
+              <div style="text-align: center; padding-top: 8px; border-top: 1px dashed #b9a8e6;">
+                <small style="display: block; font-size: .65rem; letter-spacing: 1.5px; text-transform: uppercase; color: #6d5f8f;">Total Pagado</small>
+                <strong style="font-size: 1.25rem; color: #2e7d32;">$ {{ boletoGenerado.total }}</strong>
+              </div>
+            </div>
+            <div class="ticket-foot">BLACKSCREEN CINEMA &middot; CÓDIGO {{ boletoGenerado.codigo }}</div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="btn" type="button" (click)="imprimirBoleto()">Imprimir boleto</button>
+            <button class="btn ghost" type="button" (click)="cerrarModal()">Volver a cartelera</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<div
+  id="toast"
+  class="toast"
+  [hidden]="!toastMensaje"
+  [style.background]="toastError ? 'var(--accent)' : 'var(--primary)'">
+  {{ toastMensaje }}
+</div>
+
+@if (boletoGenerado) {
+  <div id="printArea" aria-hidden="true">
+    <div class="ticket">
+      <div class="ticket-head">
+        <h1>Black<span>Screen</span></h1>
+        <p>Boleto de entrada</p>
+      </div>
+      <div class="ticket-body">
+        <div class="movie">{{ boletoGenerado.peliculaTitulo }}</div>
+        <div class="ticket-grid">
+          <div><small>Sala</small><strong>{{ boletoGenerado.sala }}</strong></div>
+          <div><small>Boletas</small><strong>{{ boletoGenerado.cantidadBoletos }}</strong></div>
+          <div><small>Fecha</small><strong>{{ boletoGenerado.fecha }}</strong></div>
+          <div><small>Hora</small><strong>{{ boletoGenerado.hora }}</strong></div>
+        </div>
+      </div>
+      <div class="ticket-foot">BLACKSCREEN CINEMA &middot; CÓDIGO {{ boletoGenerado.codigo }}</div>
+    </div>
+  </div>
+}
