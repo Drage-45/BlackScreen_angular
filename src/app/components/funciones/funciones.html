@@ -129,6 +129,7 @@
             [(ngModel)]="funcionActual.cuposDisponibles"
             placeholder="Ej. 30"
             min="0"
+            max="4212"
             step="1"
             required
           >
@@ -234,6 +235,9 @@
 
               <td>
                 <div class="table-actions">
+                  <button type="button" class="edit-button" (click)="verButacas(funcion, dialogoButacas)">
+                    Ver butacas
+                  </button>
                   <button
                     type="button"
                     class="edit-button"
@@ -263,6 +267,42 @@
 
       </table>
     </div>
+
+    <dialog #dialogoButacas class="dialogo-butacas" aria-labelledby="titulo-mapa-butacas"
+      (close)="cerrarMapa()">
+      <header class="mapa-cabecera">
+        <h2 id="titulo-mapa-butacas">{{ tituloMapa }}</h2>
+        <form method="dialog">
+          <button type="submit" class="action-secondary">Cerrar</button>
+        </form>
+      </header>
+
+      @if (cargandoMapa) {
+        <p role="status">Consultando butacas…</p>
+      } @else if (errorMapa) {
+        <p role="alert">{{ errorMapa }}</p>
+      } @else if (filasMapa.length === 0) {
+        <p role="status">Esta función no tiene butacas que mostrar.</p>
+      } @else {
+        <div class="screen">Pantalla</div>
+        <p class="mapa-leyenda">
+          <span>Disponible</span>
+          <span class="ocupada">Ocupada</span>
+        </p>
+        <div class="mapa-desplazable">
+          @for (fila of filasMapa; track fila.etiqueta) {
+            <div class="mapa-fila" [style.grid-template-columns]="'repeat(' + columnasMapa + ', 2.75rem)'">
+              @for (butaca of fila.butacas; track butaca.codigo) {
+                <span [style.grid-column]="butaca.columna" [class.ocupada]="butaca.ocupada">
+                  {{ butaca.codigo }}
+                  <span class="estado-butaca">{{ butaca.ocupada ? ' ocupada' : ' disponible' }}</span>
+                </span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </dialog>
 
   </section>
 

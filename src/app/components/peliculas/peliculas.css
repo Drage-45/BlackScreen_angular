@@ -149,6 +149,7 @@
 }
 
 .form-field input,
+.form-field textarea,
 .form-field select {
   width: 100%;
   min-height: 46px;
@@ -171,10 +172,15 @@
 }
 
 .form-field input:focus,
+.form-field textarea:focus,
 .form-field select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.form-field textarea {
+  resize: vertical;
 }
 
 .form-field select {

@@ -14,8 +14,8 @@ import {
   SafeResourceUrl
 } from '@angular/platform-browser';
 
-import { forkJoin } from 'rxjs';
-import { ApiService } from '../../services/api';
+import { forkJoin, Subscription } from 'rxjs';
+import { ApiService, Butaca } from '../../services/api';
 
 @Component({
   selector: 'app-compras',
@@ -32,6 +32,7 @@ export class Compras implements OnInit, OnDestroy {
   modalAbierto = false;
   peliculaSeleccionada: any = null;
   urlTrailerSegura: SafeResourceUrl | null = null;
+  enlaceTrailer: string | null = null;
 
   compraActual: {
     funcionId: number | null;
@@ -46,6 +47,12 @@ export class Compras implements OnInit, OnDestroy {
   boletoGenerado: any = null;
 
   compraEnProceso = false;
+  filasButacas: { fila: string; butacas: (Butaca & { columna: number })[] }[] = [];
+  columnasButacas = 0;
+  seleccionadas: string[] = [];
+  cargandoButacas = false;
+  errorButacas = '';
+  private consultaButacas?: Subscription;
 
   toastMensaje = '';
   toastError = false;
@@ -73,6 +80,7 @@ export class Compras implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.consultaButacas?.unsubscribe();
     if (this.toastTimeout) {
       clearTimeout(this.toastTimeout);
     }
@@ -157,6 +165,7 @@ export class Compras implements OnInit, OnDestroy {
 
     this.urlTrailerSegura =
       this.sanitizarTrailer(pelicula.trailerUrl);
+    this.enlaceTrailer = this.enlaceWeb(pelicula.trailerUrl);
 
     this.boletoGenerado = null;
     this.compraEnProceso = false;
@@ -172,6 +181,7 @@ export class Compras implements OnInit, OnDestroy {
     };
 
     this.modalAbierto = true;
+    this.cargarButacas(this.compraActual.funcionId);
     this.cdr.detectChanges();
   }
 
@@ -181,10 +191,65 @@ export class Compras implements OnInit, OnDestroy {
       return;
     }
 
+    this.consultaButacas?.unsubscribe();
     this.modalAbierto = false;
     this.peliculaSeleccionada = null;
     this.urlTrailerSegura = null;
+    this.enlaceTrailer = null;
     this.boletoGenerado = null;
+  }
+
+  cargarButacas(funcionId: number | null): void {
+    this.compraActual.funcionId = funcionId;
+    this.consultaButacas?.unsubscribe();
+    this.filasButacas = [];
+    this.columnasButacas = 0;
+    this.seleccionadas = [];
+    this.errorButacas = '';
+    this.cargandoButacas = funcionId !== null;
+
+    if (funcionId === null) {
+      return;
+    }
+
+    this.consultaButacas = this.apiService.getButacas(funcionId).subscribe({
+      next: (butacas) => {
+        const filas = new Map<string, (Butaca & { columna: number })[]>();
+        for (const butaca of butacas) {
+          const fila = butaca.codigo.replace(/[0-9]+$/, '');
+          if (!filas.has(fila)) {
+            filas.set(fila, []);
+          }
+          const columna = Number(butaca.codigo.slice(fila.length));
+          this.columnasButacas = Math.max(this.columnasButacas, columna);
+          filas.get(fila)!.push({ ...butaca, columna });
+        }
+        this.filasButacas = Array.from(filas, ([fila, butacas]) => ({ fila, butacas }));
+        this.cargandoButacas = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.errorButacas = error.error?.mensaje || 'No se pudieron consultar las butacas.';
+        this.cargandoButacas = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  cambiarCantidad(cantidad: number | null): void {
+    this.compraActual.cantidadBoletos = cantidad;
+    this.seleccionadas = this.seleccionadas.slice(0, Math.max(0, cantidad ?? 0));
+  }
+
+  seleccionarButaca(butaca: Butaca): void {
+    if (butaca.ocupada || this.compraEnProceso) {
+      return;
+    }
+    if (this.seleccionadas.includes(butaca.codigo)) {
+      this.seleccionadas = this.seleccionadas.filter(codigo => codigo !== butaca.codigo);
+    } else if (this.seleccionadas.length < (this.compraActual.cantidadBoletos ?? 0)) {
+      this.seleccionadas.push(butaca.codigo);
+    }
   }
 
   get funcionSeleccionada(): any {
@@ -261,12 +326,18 @@ export class Compras implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.seleccionadas.length !== cantidad) {
+      this.mostrarToast('Selecciona una butaca por cada boleto.', true);
+      return;
+    }
+
     const payload = {
       funcion: {
         id: funcion.id
       },
       nombreCliente: nombre,
-      cantidadBoletos: cantidad
+      cantidadBoletos: cantidad,
+      butacas: [...this.seleccionadas]
     };
 
     this.compraEnProceso = true;
@@ -286,6 +357,7 @@ export class Compras implements OnInit, OnDestroy {
           fecha: funcion.fecha,
           hora: funcion.hora,
           cantidadBoletos: compraCreada.cantidadBoletos ?? cantidad,
+          butacas: compraCreada.butacas,
           total: compraCreada.valorTotal ?? compraCreada.total
         };
 
@@ -324,6 +396,7 @@ export class Compras implements OnInit, OnDestroy {
         this.mostrarToast(mensaje, true);
 
         if (error.status === 409 || error.status === 404) {
+          this.cargarButacas(this.compraActual.funcionId);
           this.cargarCartelera();
         }
 
@@ -360,6 +433,19 @@ export class Compras implements OnInit, OnDestroy {
   }
 
 
+  private enlaceWeb(valor: string | null | undefined): string | null {
+    if (!valor) {
+      return null;
+    }
+    try {
+      const url = new URL(valor);
+      return (url.protocol === 'https:' || url.protocol === 'http:') &&
+        !url.username && !url.password ? url.href : null;
+    } catch {
+      return null;
+    }
+  }
+
   private sanitizarTrailer(
     trailer: string | null | undefined
   ): SafeResourceUrl | null {
@@ -375,7 +461,11 @@ export class Compras implements OnInit, OnDestroy {
       videoId = valor;
     } else {
       try {
-        const url = new URL(valor);
+        const enlace = this.enlaceWeb(valor);
+        if (!enlace) {
+          return null;
+        }
+        const url = new URL(enlace);
 
         const host = url.hostname.toLowerCase();
 

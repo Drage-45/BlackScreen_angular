@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../services/api';
+import { Subscription } from 'rxjs';
+import { ApiService, Butaca } from '../../services/api';
 
 @Component({
   selector: 'app-funciones',
@@ -10,18 +11,64 @@ import { ApiService } from '../../services/api';
   templateUrl: './funciones.html',
   styleUrl: './funciones.css'
 })
-export class Funciones implements OnInit {
+export class Funciones implements OnInit, OnDestroy {
   funciones: any[] = [];
   peliculas: any[] = [];
 
   funcionActual: any = { pelicula: { id: '' }, fecha: '', hora: '', sala: '', precio: null, cuposDisponibles: null };
   editando: boolean = false;
+  tituloMapa = '';
+  filasMapa: { etiqueta: string; butacas: (Butaca & { columna: number })[] }[] = [];
+  columnasMapa = 0;
+  cargandoMapa = false;
+  errorMapa = '';
+  private consultaMapa?: Subscription;
 
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.cargarFunciones();
     this.cargarPeliculas();
+  }
+
+  ngOnDestroy(): void {
+    this.cerrarMapa();
+  }
+
+  verButacas(funcion: any, dialogo: HTMLDialogElement): void {
+    this.cerrarMapa();
+    this.tituloMapa = `Butacas · ${funcion.pelicula?.titulo ?? 'Función'} · Sala ${funcion.sala}`;
+    this.filasMapa = [];
+    this.columnasMapa = 0;
+    this.errorMapa = '';
+    this.cargandoMapa = true;
+    dialogo.showModal();
+
+    this.consultaMapa = this.apiService.getButacas(funcion.id).subscribe({
+      next: (butacas) => {
+        const filas = new Map<string, (Butaca & { columna: number })[]>();
+        for (const butaca of butacas) {
+          const etiqueta = butaca.codigo.replace(/[0-9]+$/, '');
+          const columna = Number(butaca.codigo.slice(etiqueta.length));
+          const fila = filas.get(etiqueta) ?? [];
+          fila.push({ ...butaca, columna });
+          filas.set(etiqueta, fila);
+          this.columnasMapa = Math.max(this.columnasMapa, columna);
+        }
+        this.filasMapa = Array.from(filas, ([etiqueta, butacas]) => ({ etiqueta, butacas }));
+        this.cargandoMapa = false;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        this.errorMapa = error.error?.mensaje || 'No se pudieron consultar las butacas.';
+        this.cargandoMapa = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  cerrarMapa(): void {
+    this.consultaMapa?.unsubscribe();
   }
 
   cargarFunciones(): void {

@@ -454,3 +454,65 @@
     margin-bottom: 20px;
   }
 }
+
+.dialogo-butacas {
+  width: min(38rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dialogo-butacas::backdrop {
+  background: rgb(0 0 0 / 65%);
+}
+
+.mapa-cabecera,
+.mapa-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .65rem;
+}
+
+.mapa-cabecera {
+  justify-content: space-between;
+}
+
+.mapa-cabecera h2 {
+  margin: 0;
+}
+
+.mapa-desplazable {
+  overflow-x: auto;
+}
+
+.mapa-fila {
+  display: grid;
+  gap: .4rem;
+  width: max-content;
+  margin: 0 auto .4rem;
+}
+
+.mapa-fila > span,
+.mapa-leyenda > span {
+  padding: .45rem .25rem;
+  border: 1px solid var(--border);
+  border-radius: .4rem;
+  background: var(--seat-free);
+  text-align: center;
+}
+
+.mapa-fila > .ocupada,
+.mapa-leyenda > .ocupada {
+  background: var(--seat-taken);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.estado-butaca {
+  position: absolute;
+  clip-path: inset(50%);
+}

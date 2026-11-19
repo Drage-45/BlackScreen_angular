@@ -1,6 +1,6 @@
 <section class="hero">
   <h1>Cartelera</h1>
-  <p>Elige una película, mira el tráiler y adquiere tus boletos por admisión general.</p>
+  <p>Elige una película, mira el tráiler y elige tus butacas.</p>
 </section>
 
 <section id="movies" class="grid">
@@ -46,13 +46,19 @@
           </iframe>
         }
 
+        @if (enlaceTrailer) {
+          <a class="btn ghost" [href]="enlaceTrailer" target="_blank" rel="noopener noreferrer">
+            Abrir tráiler en otra pestaña
+          </a>
+        }
+
         <p class="synopsis">
           {{ peliculaSeleccionada.sinopsis || 'Disfruta esta proyección en pantalla gigante con sonido envolvente en BlackScreen Cinema.' }}
           <br><br>
           {{ peliculaSeleccionada.genero }} &middot; {{ peliculaSeleccionada.duracion }}&middot; Clasificación {{ peliculaSeleccionada.clasificacion }}
         </p>
 
-        <div class="section-title">Compra de Boletos (Admisión General)</div>
+        <div class="section-title">Compra de boletos</div>
 
         @if (peliculaSeleccionada.funciones?.length > 0) {
           <div class="field">
@@ -60,9 +66,11 @@
             <select
               id="selectFuncion"
               name="funcionId"
-              [(ngModel)]="compraActual.funcionId"
+              [ngModel]="compraActual.funcionId"
+              (ngModelChange)="cargarButacas($event)"
+              [disabled]="compraEnProceso"
               required>
-              <option value="" disabled>-- Elige fecha, hora y sala --</option>
+              <option [ngValue]="null" disabled>-- Elige fecha, hora y sala --</option>
               @for (funcion of peliculaSeleccionada.funciones; track funcion.id) {
                 <option [ngValue]="funcion.id" [disabled]="funcion.cuposDisponibles === 0">
                   {{ funcion.fecha }} a las {{ funcion.hora }} &middot; Sala {{ funcion.sala }} ($ {{ funcion.precio }}) &middot; {{ funcion.cuposDisponibles }} cupos libres
@@ -92,16 +100,58 @@
               id="inputCantidad"
               type="number"
               name="cantidadBoletos"
-              [(ngModel)]="compraActual.cantidadBoletos"
+              [ngModel]="compraActual.cantidadBoletos"
+              (ngModelChange)="cambiarCantidad($event)"
+              [disabled]="compraEnProceso"
+              [max]="funcionSeleccionada?.cuposDisponibles ?? 0"
               min="1"
               required>
           </div>
+
+          @if (funcionSeleccionada) {
+            <section aria-label="Butacas de la función">
+              @if (cargandoButacas) {
+                <p role="status">Consultando butacas…</p>
+              } @else if (errorButacas) {
+                <p role="alert">{{ errorButacas }}</p>
+                <button class="btn ghost" type="button" (click)="cargarButacas(compraActual.funcionId)">
+                  Reintentar
+                </button>
+              } @else if (filasButacas.length === 0) {
+                <p role="status">Esta función todavía no tiene un mapa de butacas configurado.</p>
+              } @else {
+                <div class="seat-screen">Pantalla</div>
+                <div class="seat-legend">
+                  <span class="seat-key">Disponible</span>
+                  <span class="seat-key selected">Seleccionada</span>
+                  <span class="seat-key occupied">Ocupada</span>
+                </div>
+                <div class="seat-map">
+                  @for (fila of filasButacas; track fila.fila) {
+                    <div class="seat-row" role="group" [attr.aria-label]="'Fila ' + fila.fila"
+                      [style.grid-template-columns]="'repeat(' + columnasButacas + ', 2.75rem)'">
+                      @for (butaca of fila.butacas; track butaca.codigo) {
+                        <button class="seat" type="button" [style.grid-column]="butaca.columna"
+                          [class.selected]="seleccionadas.includes(butaca.codigo)"
+                          [class.occupied]="butaca.ocupada"
+                          [attr.aria-label]="'Butaca ' + butaca.codigo + (butaca.ocupada ? ', ocupada' : '')"
+                          [attr.aria-pressed]="seleccionadas.includes(butaca.codigo)"
+                          [disabled]="butaca.ocupada || compraEnProceso"
+                          (click)="seleccionarButaca(butaca)">{{ butaca.codigo }}</button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </section>
+          }
 
           <div class="summary">
             <div class="info">
               @if (funcionSeleccionada; as func) {
                 <b>{{ func.fecha }}</b> a las <b>{{ func.hora }}</b> &middot; Sala <b>{{ func.sala }}</b> ({{ func.cuposDisponibles }} disponibles)<br>
                 Boletas: <b>{{ compraActual.cantidadBoletos || 0 }}</b> &middot;
+                Butacas: <b>{{ seleccionadas.join(', ') || 'Sin seleccionar' }}</b><br>
                 Total a pagar: <b style="color: #4CAF50; font-size: 1.15rem;">$ {{ totalAPagar }}</b>
               } @else {
                 Selecciona un horario para calcular el total a pagar.
@@ -110,7 +160,9 @@
             <button
               class="btn accent"
               type="button"
-              [disabled]="!funcionSeleccionada || !compraActual.cantidadBoletos || compraActual.cantidadBoletos < 1"
+              [disabled]="compraEnProceso || !funcionSeleccionada || !compraActual.cantidadBoletos ||
+                compraActual.cantidadBoletos > funcionSeleccionada.cuposDisponibles ||
+                seleccionadas.length !== compraActual.cantidadBoletos"
               (click)="realizarCompra()">
               Comprar boletos
             </button>
@@ -130,9 +182,10 @@
               <div class="movie">{{ boletoGenerado.peliculaTitulo }}</div>
               <div class="ticket-grid">
                 <div><small>Sala</small><strong>{{ boletoGenerado.sala }}</strong></div>
-                <div><small>Boletas</small><strong>{{ boletoGenerado.cantidadBoletos }} (General)</strong></div>
+                <div><small>Boletas</small><strong>{{ boletoGenerado.cantidadBoletos }}</strong></div>
                 <div><small>Fecha</small><strong>{{ boletoGenerado.fecha }}</strong></div>
                 <div><small>Hora</small><strong>{{ boletoGenerado.hora }}</strong></div>
+              <div><small>Butacas</small><strong>{{ boletoGenerado.butacas.join(', ') }}</strong></div>
               </div>
               <div style="text-align: center; padding-top: 8px; border-top: 1px dashed #b9a8e6;">
                 <small style="display: block; font-size: .65rem; letter-spacing: 1.5px; text-transform: uppercase; color: #6d5f8f;">Total Pagado</small>
@@ -174,6 +227,7 @@
           <div><small>Boletas</small><strong>{{ boletoGenerado.cantidadBoletos }}</strong></div>
           <div><small>Fecha</small><strong>{{ boletoGenerado.fecha }}</strong></div>
           <div><small>Hora</small><strong>{{ boletoGenerado.hora }}</strong></div>
+          <div><small>Butacas</small><strong>{{ boletoGenerado.butacas.join(', ') }}</strong></div>
         </div>
       </div>
       <div class="ticket-foot">BLACKSCREEN CINEMA &middot; CÓDIGO {{ boletoGenerado.codigo }}</div>

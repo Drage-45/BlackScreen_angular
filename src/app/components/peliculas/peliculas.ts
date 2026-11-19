@@ -42,7 +42,10 @@ export class PeliculasComponent implements OnInit {
       titulo: this.peliculaActual.titulo,
       genero: this.peliculaActual.genero,
       duracion: this.peliculaActual.duracion,
-      clasificacion: this.peliculaActual.clasificacion
+      clasificacion: this.peliculaActual.clasificacion,
+      sinopsis: this.peliculaActual.sinopsis?.trim() || null,
+      posterUrl: this.peliculaActual.posterUrl?.trim() || null,
+      trailerUrl: this.peliculaActual.trailerUrl?.trim() || null
     };
 
     if (this.editando) {

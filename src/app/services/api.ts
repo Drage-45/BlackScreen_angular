@@ -2,6 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export interface Butaca {
+  codigo: string;
+  ocupada: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,6 +23,10 @@ export class ApiService {
   // Módulo Compras
   getCompras(): Observable<any> { return this.http.get(`${this.baseUrl}/compras`); }
   crearCompra(data: any): Observable<any> { return this.http.post(`${this.baseUrl}/compras`, data); }
+
+  getButacas(funcionId: number): Observable<Butaca[]> {
+    return this.http.get<Butaca[]>(`${this.baseUrl}/funciones/${funcionId}/butacas`);
+  }
 
   // Módulo Funciones
   getFunciones(): Observable<any> { return this.http.get(`${this.baseUrl}/funciones`); }

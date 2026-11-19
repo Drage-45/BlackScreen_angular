@@ -715,3 +715,70 @@
     width: 100%;
   }
 }
+
+.seat-screen {
+  margin: 1rem auto .75rem;
+  padding: .35rem;
+  text-align: center;
+  border-top: 3px solid var(--primary);
+  border-radius: .65rem;
+  color: var(--muted);
+}
+
+.seat-legend,
+.seat-row {
+  display: flex;
+  gap: .45rem;
+}
+
+.seat-legend {
+  flex-wrap: wrap;
+  margin-bottom: .65rem;
+}
+
+.seat-map {
+  overflow-x: auto;
+  padding: .25rem;
+}
+
+.seat-row {
+  display: grid;
+  width: max-content;
+  margin: 0 auto .45rem;
+}
+
+.seat,
+.seat-key {
+  border: 1px solid var(--border);
+  border-radius: .4rem;
+  background: var(--seat-free);
+  color: var(--text);
+  padding: .35rem .55rem;
+}
+
+.seat {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+.seat.selected,
+.seat-key.selected {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.seat.occupied,
+.seat-key.occupied {
+  background: var(--seat-taken);
+}
+
+.seat:disabled {
+  cursor: default;
+}
+
+.seat:focus-visible {
+  outline: 2px solid var(--primary-hover);
+  outline-offset: 2px;
+}
