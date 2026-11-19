@@ -1,15 +1,101 @@
-<header class="topbar">
-  <a class="brand" routerLink="/compras" id="brand">Black<span>Screen</span></a>
-  <nav class="actions">
-    <a class="btn ghost" routerLink="/compras">Cartelera</a>
-    <a class="btn ghost" routerLink="/peliculas">Películas</a>
-    <a class="btn ghost" routerLink="/funciones">Funciones</a>
-    <a class="btn ghost" routerLink="/historial">Historial</a>
-  </nav>
-</header>
 
-<main>
-  <router-outlet></router-outlet>
-</main>
+<div class="app-shell">
 
-<footer class="footer">BlackScreen Cinema &middot; Proyecto académico</footer>
+  <!-- MENÚ LATERAL -->
+  <aside class="admin-sidebar">
+
+    <div class="sidebar-brand">
+      <a routerLink="/dashboard" class="brand-logo">
+        Black<span>Screen</span>
+      </a>
+
+      <p>Panel de administración</p>
+    </div>
+
+    <nav class="sidebar-navigation" aria-label="Navegación principal">
+
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-item"
+      >
+        <span class="nav-icon">▦</span>
+        <span>Dashboard</span>
+      </a>
+
+      <a
+        routerLink="/peliculas"
+        routerLinkActive="active"
+        class="nav-item"
+      >
+        <span class="nav-icon">▶</span>
+        <span>Películas</span>
+      </a>
+
+      <a
+        routerLink="/funciones"
+        routerLinkActive="active"
+        class="nav-item"
+      >
+        <span class="nav-icon">▣</span>
+        <span>Funciones</span>
+      </a>
+
+      <a
+        routerLink="/compras"
+        routerLinkActive="active"
+        class="nav-item"
+      >
+        <span class="nav-icon">🎟</span>
+        <span>Compras</span>
+      </a>
+
+      <a
+        routerLink="/historial"
+        routerLinkActive="active"
+        class="nav-item"
+      >
+        <span class="nav-icon">◷</span>
+        <span>Historial</span>
+      </a>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="sidebar-status"></span>
+      BlackScreen Cinema
+      <small>Proyecto académico</small>
+    </div>
+
+  </aside>
+
+  <!-- CONTENIDO -->
+  <div class="app-content">
+
+    <header class="admin-topbar">
+      <div class="topbar-information">
+        <span class="topbar-kicker">SISTEMA DE GESTIÓN</span>
+        <strong>BlackScreen Cinema</strong>
+      </div>
+
+      <div class="topbar-profile">
+        <span class="profile-avatar">AD</span>
+        <div class="profile-info">
+          <strong>Administración</strong>
+          <small>Panel de gestión</small>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <router-outlet></router-outlet>
+    </main>
+
+    <footer class="admin-footer">
+      BlackScreen Cinema · Proyecto académico
+    </footer>
+
+  </div>
+
+</div>

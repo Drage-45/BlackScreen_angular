@@ -1,35 +1,274 @@
-<section class="hero">
-  <h1>Historial General de Ventas</h1>
-  <p>Registro completo de boletas vendidas y totales recaudados en taquilla.</p>
-</section>
 
-<div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-  <table cellpadding="12" style="width: 100%; border-collapse: collapse; text-align: left;">
-    <thead style="background-color: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border);">
-      <tr>
-        <th>ID Ticket</th>
-        <th>Película</th>
-        <th>Fecha de Función</th>
-        <th>Sala</th>
-        <th style="text-align: center;">Boletas Compradas</th>
-        <th>Total Pagado</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (compra of compras; track compra.id) {
-        <tr style="border-bottom: 1px solid var(--border);">
-          <td style="font-weight: bold; color: var(--primary);"># {{ compra.id }}</td>
-          <td><strong>{{ compra.funcion?.pelicula?.titulo }}</strong></td>
-          <td>{{ compra.funcion?.fecha }} &middot; {{ compra.funcion?.hora }}</td>
-          <td>{{ compra.funcion?.sala }}</td>
-          <td style="text-align: center;">{{ compra.cantidadBoletos }}</td>
-          <td style="color: #4CAF50; font-weight: bold;">$ {{ compra.valorTotal ?? compra.total }}</td>
-        </tr>
-      } @empty {
-        <tr>
-          <td colspan="6" class="empty">Aún no se han registrado ventas en el sistema.</td>
-        </tr>
-      }
-    </tbody>
-  </table>
-</div>
+<section class="historial-admin">
+
+  <!-- ENCABEZADO -->
+  <header class="admin-header">
+
+    <div>
+      <span class="eyebrow">
+        BLACKSCREEN / ADMINISTRACIÓN
+      </span>
+
+      <h1>Historial de Ventas</h1>
+
+      <p>
+        Consulta las compras realizadas, los boletos
+        vendidos y los ingresos registrados en taquilla.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="refresh-button"
+      (click)="cargarHistorial()"
+      [disabled]="cargando"
+    >
+      {{ cargando ? 'Actualizando...' : 'Actualizar historial' }}
+    </button>
+
+  </header>
+
+  <!-- INDICADORES -->
+  <section class="stats-grid">
+
+    <article class="stat-card">
+      <div class="stat-top">
+        <span>Compras registradas</span>
+        <span class="stat-icon">#</span>
+      </div>
+
+      <strong class="stat-value">
+        {{ totalCompras }}
+      </strong>
+
+      <span class="stat-description">
+        Transacciones realizadas
+      </span>
+    </article>
+
+    <article class="stat-card">
+      <div class="stat-top">
+        <span>Boletos vendidos</span>
+        <span class="stat-icon">B</span>
+      </div>
+
+      <strong class="stat-value">
+        {{ totalBoletos }}
+      </strong>
+
+      <span class="stat-description">
+        Entradas registradas
+      </span>
+    </article>
+
+    <article class="stat-card revenue-card">
+      <div class="stat-top">
+        <span>Total recaudado</span>
+        <span class="stat-icon">$</span>
+      </div>
+
+      <strong class="stat-value revenue-value">
+        {{ totalRecaudado | currency:'COP':'symbol':'1.0-0' }}
+      </strong>
+
+      <span class="stat-description">
+        Ingresos registrados en ventas
+      </span>
+    </article>
+
+  </section>
+
+  <!-- REGISTRO DE VENTAS -->
+  <section class="admin-panel">
+
+    <div class="panel-heading">
+
+      <div>
+        <h2>Registro de ventas</h2>
+
+        <p>
+          Información de todas las compras
+          realizadas en BlackScreen.
+        </p>
+      </div>
+
+      <span class="count-tag">
+        {{ comprasFiltradas.length }} registros
+      </span>
+
+    </div>
+
+    <!-- BUSCADOR -->
+    <div class="table-toolbar">
+
+      <div class="search-container">
+
+        <label for="buscarVenta" class="search-label">
+          Buscar venta
+        </label>
+
+        <div class="search-input-wrapper">
+
+          <input
+            id="buscarVenta"
+            type="search"
+            name="busqueda"
+            [(ngModel)]="busqueda"
+            placeholder="Cliente, película o número de ticket..."
+          >
+
+          @if (busqueda) {
+            <button
+              type="button"
+              class="clear-button"
+              (click)="limpiarBusqueda()"
+              aria-label="Limpiar búsqueda"
+            >
+              &times;
+            </button>
+          }
+
+        </div>
+
+      </div>
+
+      <span class="table-info">
+        {{ comprasFiltradas.length }} de {{ totalCompras }} compras
+      </span>
+
+    </div>
+
+    <!-- ERROR DE CARGA -->
+    @if (errorMensaje) {
+      <div class="error-message" role="alert">
+        {{ errorMensaje }}
+      </div>
+    }
+
+    <!-- TABLA -->
+    <div class="table-container">
+
+      <table class="sales-table">
+
+        <thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Cliente</th>
+            <th>Película</th>
+            <th>Fecha de función</th>
+            <th>Sala</th>
+            <th>Boletos</th>
+            <th>Total pagado</th>
+            <th>Fecha de compra</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          @if (cargando) {
+            <tr>
+              <td colspan="8" class="empty-table">
+                Cargando historial de ventas...
+              </td>
+            </tr>
+          } @else {
+
+            @for (compra of comprasFiltradas; track compra.id) {
+
+              <tr>
+
+                <td>
+                  <span class="ticket-id">
+                    #{{ compra.id }}
+                  </span>
+                </td>
+
+                <td>
+                  <strong class="client-name">
+                    {{ compra.nombreCliente || 'Sin nombre' }}
+                  </strong>
+                </td>
+
+                <td>
+                  <strong class="movie-name">
+                    {{ compra.funcion?.pelicula?.titulo || 'No disponible' }}
+                  </strong>
+                </td>
+
+                <td>
+                  <div class="date-info">
+                    <strong>
+                      {{ compra.funcion?.fecha || 'No disponible' }}
+                    </strong>
+
+                    <span>
+                      {{ compra.funcion?.hora || '' }}
+                    </span>
+                  </div>
+                </td>
+
+                <td>
+                  <span class="room-badge">
+                    {{ compra.funcion?.sala || 'N/D' }}
+                  </span>
+                </td>
+
+                <td>
+                  <span class="ticket-count">
+                    {{ compra.cantidadBoletos }}
+                  </span>
+                </td>
+
+                <td>
+                  <strong class="sale-total">
+                    {{ obtenerTotal(compra) | currency:'COP':'symbol':'1.0-0' }}
+                  </strong>
+                </td>
+
+                <td>
+                  @if (compra.fechaCompra) {
+                    <div class="date-info">
+                      <strong>
+                        {{ compra.fechaCompra | date:'dd/MM/yyyy' }}
+                      </strong>
+
+                      <span>
+                        {{ compra.fechaCompra | date:'shortTime' }}
+                      </span>
+                    </div>
+                  } @else {
+                    <span class="muted-text">
+                      No disponible
+                    </span>
+                  }
+                </td>
+
+              </tr>
+
+            } @empty {
+
+              <tr>
+                <td colspan="8" class="empty-table">
+
+                  @if (busqueda.trim()) {
+                    No se encontraron ventas con esa búsqueda.
+                  } @else if (!errorMensaje) {
+                    Aún no hay ventas registradas en el sistema.
+                  } @else {
+                    No se pudieron mostrar los registros.
+                  }
+
+                </td>
+              </tr>
+
+            }
+          }
+
+        </tbody>
+      </table>
+
+    </div>
+
+  </section>
+
+</section>

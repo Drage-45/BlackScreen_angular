@@ -1,63 +1,269 @@
-<section class="hero">
-  <h1>Gestión de Funciones</h1>
-  <p>Programa los horarios, salas, precios y cupos disponibles por película.</p>
+
+<section class="funciones-admin">
+
+  <!-- ENCABEZADO -->
+  <header class="admin-header">
+    <div>
+      <span class="eyebrow">BLACKSCREEN / ADMINISTRACIÓN</span>
+      <h1>Gestión de Funciones</h1>
+      <p>
+        Programa las proyecciones, administra los horarios
+        y controla la disponibilidad de las salas.
+      </p>
+    </div>
+
+    <div class="total-card">
+      <span class="total-number">{{ funciones.length }}</span>
+      <span class="total-label">Funciones programadas</span>
+    </div>
+  </header>
+
+  <!-- FORMULARIO -->
+  <section class="admin-panel">
+
+    <div class="panel-heading">
+      <div>
+        <h2>{{ editando ? 'Editar función' : 'Programar función' }}</h2>
+        <p>
+          {{ editando
+            ? 'Modifica los datos de la función seleccionada.'
+            : 'Completa los datos para programar una nueva función.'
+          }}
+        </p>
+      </div>
+
+      <span class="panel-tag">
+        {{ editando ? 'Edición' : 'Nueva función' }}
+      </span>
+    </div>
+
+    <form
+      #formFuncion="ngForm"
+      (ngSubmit)="guardarFuncion()"
+      class="funcion-form"
+    >
+
+      <div class="form-grid">
+
+        <div class="form-field span-2">
+          <label for="pelicula">Película</label>
+
+          <select
+            id="pelicula"
+            name="peliculaId"
+            [(ngModel)]="funcionActual.pelicula.id"
+            required
+          >
+            <option [ngValue]="null" disabled>
+              Selecciona una película
+            </option>
+
+            @for (pelicula of peliculas; track pelicula.id) {
+              <option [ngValue]="pelicula.id">
+                {{ pelicula.titulo }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="fecha">Fecha de proyección</label>
+
+          <input
+            id="fecha"
+            type="date"
+            name="fecha"
+            [(ngModel)]="funcionActual.fecha"
+            required
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="hora">Hora de proyección</label>
+
+          <input
+            id="hora"
+            type="time"
+            name="hora"
+            [(ngModel)]="funcionActual.hora"
+            required
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="sala">Sala</label>
+
+          <input
+            id="sala"
+            type="text"
+            name="sala"
+            [(ngModel)]="funcionActual.sala"
+            placeholder="Ej. Sala 1"
+            maxlength="20"
+            required
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="precio">Precio de la boleta ($)</label>
+
+          <input
+            id="precio"
+            type="number"
+            name="precio"
+            [(ngModel)]="funcionActual.precio"
+            placeholder="Ej. 15000"
+            min="0"
+            step="0.01"
+            required
+          >
+        </div>
+
+        <div class="form-field span-2">
+          <label for="cupos">Cupos disponibles</label>
+
+          <input
+            id="cupos"
+            type="number"
+            name="cupos"
+            [(ngModel)]="funcionActual.cuposDisponibles"
+            placeholder="Ej. 30"
+            min="0"
+            step="1"
+            required
+          >
+          <small>
+            Indica cuántas boletas estarán disponibles para esta función.
+          </small>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+
+        <button
+          type="submit"
+          class="action-primary"
+          [disabled]="formFuncion.invalid"
+        >
+          {{ editando ? 'Guardar cambios' : '+ Crear función' }}
+        </button>
+
+        @if (editando) {
+          <button
+            type="button"
+            class="action-secondary"
+            (click)="resetForm()"
+          >
+            Cancelar
+          </button>
+        }
+
+      </div>
+
+    </form>
+  </section>
+
+  <!-- TABLA -->
+  <section class="admin-panel">
+
+    <div class="panel-heading">
+      <div>
+        <h2>Funciones programadas</h2>
+        <p>Consulta y administra las proyecciones existentes.</p>
+      </div>
+
+      <span class="count-tag">
+        {{ funciones.length }} registros
+      </span>
+    </div>
+
+    <div class="table-container">
+      <table class="funciones-table">
+
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Película</th>
+            <th>Fecha y hora</th>
+            <th>Sala</th>
+            <th>Precio</th>
+            <th>Cupos</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (funcion of funciones; track funcion.id) {
+            <tr>
+              <td>
+                <span class="funcion-id">
+                  #{{ funcion.id }}
+                </span>
+              </td>
+
+              <td>
+                <strong class="pelicula-title">
+                  {{ funcion.pelicula?.titulo || 'Sin película' }}
+                </strong>
+              </td>
+
+              <td>
+                <div class="date-info">
+                  <strong>{{ funcion.fecha }}</strong>
+                  <span>{{ funcion.hora }}</span>
+                </div>
+              </td>
+
+              <td>
+                <span class="sala-badge">
+                  {{ funcion.sala }}
+                </span>
+              </td>
+
+              <td class="precio">
+                {{ funcion.precio | currency:'COP':'symbol':'1.0-0' }}
+              </td>
+
+              <td>
+                <span class="cupos-badge"
+                      [class.sin-cupos]="funcion.cuposDisponibles === 0">
+                  {{ funcion.cuposDisponibles }}
+                </span>
+              </td>
+
+              <td>
+                <div class="table-actions">
+                  <button
+                    type="button"
+                    class="edit-button"
+                    (click)="editar(funcion)"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
+                    class="delete-button"
+                    (click)="eliminar(funcion.id)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty-table">
+                No hay funciones programadas todavía.
+              </td>
+            </tr>
+          }
+        </tbody>
+
+      </table>
+    </div>
+
+  </section>
+
 </section>
-
-<form (ngSubmit)="guardarFuncion()" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; background: var(--surface); padding: 18px; border-radius: 12px; border: 1px solid var(--border);">
-  <select name="peliculaId" [(ngModel)]="funcionActual.pelicula.id" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; flex: 1; min-width: 200px;">
-    <option value="" disabled>Seleccione Película</option>
-    @for (pelicula of peliculas; track pelicula.id) {
-      <option [ngValue]="pelicula.id">{{ pelicula.titulo }}</option>
-    }
-  </select>
-
-  <input type="date" name="fecha" [(ngModel)]="funcionActual.fecha" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px;">
-  <input type="time" name="hora" [(ngModel)]="funcionActual.hora" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px;">
-  <input type="text" name="sala" [(ngModel)]="funcionActual.sala" placeholder="Sala (ej. 1)" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: 130px;">
-  <input type="number" name="precio" [(ngModel)]="funcionActual.precio" placeholder="Precio ($)" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: 140px;">
-  <input type="number" name="cupos" [(ngModel)]="funcionActual.cuposDisponibles" placeholder="Cupos" required style="padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: 130px;">
-
-  <button class="btn" type="submit">
-    {{ editando ? 'Actualizar Función' : 'Crear Función' }}
-  </button>
-
-  @if (editando) {
-    <button class="btn accent" type="button" (click)="resetForm()">Cancelar</button>
-  }
-</form>
-
-<div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-  <table cellpadding="12" style="width: 100%; border-collapse: collapse; text-align: left;">
-    <thead style="background-color: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border);">
-      <tr>
-        <th>ID</th>
-        <th>Película</th>
-        <th>Fecha y Hora</th>
-        <th>Sala</th>
-        <th>Precio</th>
-        <th>Cupos Disponibles</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (funcion of funciones; track funcion.id) {
-        <tr style="border-bottom: 1px solid var(--border);">
-          <td>{{ funcion.id }}</td>
-          <td><strong>{{ funcion.pelicula?.titulo }}</strong></td>
-          <td>{{ funcion.fecha }} &middot; {{ funcion.hora }}</td>
-          <td>{{ funcion.sala }}</td>
-          <td>$ {{ funcion.precio }}</td>
-          <td>{{ funcion.cuposDisponibles }}</td>
-          <td>
-            <button class="btn ghost small" (click)="editar(funcion)" style="margin-right: 6px;">Editar</button>
-            <button class="btn accent small" (click)="eliminar(funcion.id)">Eliminar</button>
-          </td>
-        </tr>
-      } @empty {
-        <tr>
-          <td colspan="7" class="empty">No hay funciones programadas. Ve a Películas para crear una.</td>
-        </tr>
-      }
-    </tbody>
-  </table>
-</div>

@@ -1,7 +1,20 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef
+} from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+
+import {
+  DomSanitizer,
+  SafeResourceUrl
+} from '@angular/platform-browser';
+
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api';
 
 @Component({
@@ -11,26 +24,33 @@ import { ApiService } from '../../services/api';
   templateUrl: './compras.html',
   styleUrl: './compras.css'
 })
-export class Compras implements OnInit {
+export class Compras implements OnInit, OnDestroy {
+
   peliculasConFunciones: any[] = [];
   funciones: any[] = [];
 
-
-  modalAbierto: boolean = false;
+  modalAbierto = false;
   peliculaSeleccionada: any = null;
   urlTrailerSegura: SafeResourceUrl | null = null;
 
-  compraActual: { funcionId: any; cantidadBoletos: number | null } = {
-    funcionId: '',
+  compraActual: {
+    funcionId: number | null;
+    nombreCliente: string;
+    cantidadBoletos: number | null;
+  } = {
+    funcionId: null,
+    nombreCliente: '',
     cantidadBoletos: 1
   };
 
-
   boletoGenerado: any = null;
 
-  toastMensaje: string = '';
-  toastError: boolean = false;
-  private toastTimeout: any = null;
+  compraEnProceso = false;
+
+  toastMensaje = '';
+  toastError = false;
+
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private readonly gradientes: [string, string][] = [
     ['#2b1b5e', '#7c4dff'],
@@ -52,50 +72,102 @@ export class Compras implements OnInit {
     this.cargarCartelera();
   }
 
+  ngOnDestroy(): void {
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+  }
+
   cargarCartelera(): void {
-    this.apiService.getPeliculas().subscribe(peliculas => {
-      this.apiService.getFunciones().subscribe(funciones => {
+
+    forkJoin({
+      peliculas: this.apiService.getPeliculas(),
+      funciones: this.apiService.getFunciones()
+    }).subscribe({
+
+      next: ({ peliculas, funciones }) => {
+
         this.funciones = funciones;
 
-        this.peliculasConFunciones = peliculas.map((peli: any, idx: number) => {
-          const colores = this.gradientes[idx % this.gradientes.length];
-          const funcionesPeli = funciones.filter((f: any) => f.pelicula?.id === peli.id);
-          return {
-            ...peli,
-            colores,
-            funciones: funcionesPeli
-          };
-        });
+        this.peliculasConFunciones = peliculas.map(
+          (peli: any, index: number) => {
+
+            const colores =
+              this.gradientes[index % this.gradientes.length];
+
+            const funcionesPeli = funciones.filter(
+              (funcion: any) =>
+                funcion.pelicula?.id === peli.id
+            );
+
+            return {
+              ...peli,
+              colores,
+              funciones: funcionesPeli
+            };
+          }
+        );
 
         if (this.peliculaSeleccionada) {
-          const actualizada = this.peliculasConFunciones.find(p => p.id === this.peliculaSeleccionada.id);
+
+          const actualizada = this.peliculasConFunciones.find(
+            (p: any) => p.id === this.peliculaSeleccionada.id
+          );
+
           if (actualizada) {
             this.peliculaSeleccionada = actualizada;
           }
         }
 
         this.cdr.detectChanges();
-      });
+      },
+
+      error: (error) => {
+        console.error('Error al cargar cartelera:', error);
+
+        this.mostrarToast(
+          error.error?.mensaje ||
+          'No se pudo cargar la cartelera.',
+          true
+        );
+      }
     });
   }
 
   obtenerEstiloPoster(pelicula: any): string {
-    const c0 = pelicula.colores?.[0] || '#2b1b5e';
-    const c1 = pelicula.colores?.[1] || '#7c4dff';
-    if (pelicula.posterUrl && pelicula.posterUrl.trim() !== '') {
-      return `url('${pelicula.posterUrl}'), linear-gradient(160deg, ${c0}, ${c1})`;
+
+    const color1 = pelicula.colores?.[0] || '#2b1b5e';
+    const color2 = pelicula.colores?.[1] || '#7c4dff';
+
+    if (
+      typeof pelicula.posterUrl === 'string' &&
+      /^https?:\/\//i.test(pelicula.posterUrl.trim())
+    ) {
+      return `url("${pelicula.posterUrl}"),
+        linear-gradient(160deg, ${color1}, ${color2})`;
     }
-    return `linear-gradient(160deg, ${c0}, ${c1})`;
+
+    return `linear-gradient(160deg, ${color1}, ${color2})`;
   }
 
-  abrirModal(pelicula: any): void {
-    this.peliculaSeleccionada = pelicula;
-    this.urlTrailerSegura = this.sanitizarTrailer(pelicula.trailerUrl);
-    this.boletoGenerado = null;
 
-    const primeraDisponible = pelicula.funciones?.find((f: any) => f.cuposDisponibles > 0);
+  abrirModal(pelicula: any): void {
+
+    this.peliculaSeleccionada = pelicula;
+
+    this.urlTrailerSegura =
+      this.sanitizarTrailer(pelicula.trailerUrl);
+
+    this.boletoGenerado = null;
+    this.compraEnProceso = false;
+
+    const primeraDisponible = pelicula.funciones?.find(
+      (funcion: any) => funcion.cuposDisponibles > 0
+    );
+
     this.compraActual = {
-      funcionId: primeraDisponible ? primeraDisponible.id : '',
+      funcionId: primeraDisponible?.id ?? null,
+      nombreCliente: '',
       cantidadBoletos: 1
     };
 
@@ -104,6 +176,11 @@ export class Compras implements OnInit {
   }
 
   cerrarModal(): void {
+
+    if (this.compraEnProceso) {
+      return;
+    }
+
     this.modalAbierto = false;
     this.peliculaSeleccionada = null;
     this.urlTrailerSegura = null;
@@ -111,56 +188,145 @@ export class Compras implements OnInit {
   }
 
   get funcionSeleccionada(): any {
-    if (!this.peliculaSeleccionada || !this.compraActual.funcionId) {
+
+    if (
+      !this.peliculaSeleccionada ||
+      this.compraActual.funcionId == null
+    ) {
       return null;
     }
+
     return this.peliculaSeleccionada.funciones?.find(
-      (f: any) => f.id === this.compraActual.funcionId
-    );
+      (funcion: any) =>
+        funcion.id === this.compraActual.funcionId
+    ) ?? null;
   }
 
   get totalAPagar(): number {
-    const func = this.funcionSeleccionada;
-    const cant = this.compraActual.cantidadBoletos || 0;
-    return func && cant > 0 ? func.precio * cant : 0;
+
+    const funcion = this.funcionSeleccionada;
+    const cantidad = this.compraActual.cantidadBoletos ?? 0;
+
+    if (!funcion || cantidad <= 0) {
+      return 0;
+    }
+
+    return funcion.precio * cantidad;
   }
 
+
   realizarCompra(): void {
-    const func = this.funcionSeleccionada;
-    if (!func || !this.compraActual.cantidadBoletos || this.compraActual.cantidadBoletos < 1) {
-      this.mostrarToast('Selecciona una función válida y la cantidad de boletos.', true);
+
+    if (this.compraEnProceso) {
+      return;
+    }
+
+    const funcion = this.funcionSeleccionada;
+    const cantidad = this.compraActual.cantidadBoletos;
+    const nombre = this.compraActual.nombreCliente.trim();
+
+    if (!funcion) {
+      this.mostrarToast(
+        'Selecciona una función válida.',
+        true
+      );
+      return;
+    }
+
+    if (!nombre) {
+      this.mostrarToast(
+        'El nombre del cliente es obligatorio.',
+        true
+      );
+      return;
+    }
+
+    if (
+      cantidad == null ||
+      !Number.isInteger(cantidad) ||
+      cantidad <= 0
+    ) {
+      this.mostrarToast(
+        'La cantidad de boletos debe ser un entero mayor que cero.',
+        true
+      );
+      return;
+    }
+
+    if (cantidad > funcion.cuposDisponibles) {
+      this.mostrarToast(
+        'No hay suficientes cupos disponibles.',
+        true
+      );
       return;
     }
 
     const payload = {
-      funcion: { id: func.id },
-      cantidadBoletos: this.compraActual.cantidadBoletos,
-      nombreCliente: 'Cliente Taquilla'
+      funcion: {
+        id: funcion.id
+      },
+      nombreCliente: nombre,
+      cantidadBoletos: cantidad
     };
 
+    this.compraEnProceso = true;
+
     this.apiService.crearCompra(payload).subscribe({
+
       next: (compraCreada) => {
+
+        this.compraEnProceso = false;
+
         this.boletoGenerado = {
-          id: compraCreada?.id || Math.floor(1000 + Math.random() * 9000),
-          codigo: `BS-${compraCreada?.id || Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          id: compraCreada.id,
+          codigo: `BS-${compraCreada.id}`,
+          nombreCliente: nombre,
           peliculaTitulo: this.peliculaSeleccionada.titulo,
-          sala: func.sala,
-          fecha: func.fecha,
-          hora: func.hora,
-          cantidadBoletos: payload.cantidadBoletos,
-          total: compraCreada?.valorTotal ?? compraCreada?.total ?? this.totalAPagar
+          sala: funcion.sala,
+          fecha: funcion.fecha,
+          hora: funcion.hora,
+          cantidadBoletos: compraCreada.cantidadBoletos ?? cantidad,
+          total: compraCreada.valorTotal ?? compraCreada.total
         };
 
-        this.mostrarToast('¡Compra realizada con éxito!', false);
+        this.mostrarToast(
+          '¡Compra registrada correctamente!'
+        );
+
         this.cargarCartelera();
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        if (err.status === 409) {
-          this.mostrarToast('Error 409: No hay suficientes cupos disponibles para esta función.', true);
-        } else {
-          this.mostrarToast('Ocurrió un error al procesar la compra en el servidor.', true);
+
+      error: (error) => {
+
+        this.compraEnProceso = false;
+
+        console.error('Error al registrar compra:', error);
+
+        let mensaje =
+          error.error?.mensaje ||
+          'No se pudo registrar la compra.';
+
+        if (error.status === 409) {
+          mensaje = error.error?.mensaje ||
+            'No hay suficientes cupos disponibles.';
         }
+
+        if (error.status === 404) {
+          mensaje = error.error?.mensaje ||
+            'La función seleccionada no existe.';
+        }
+
+        if (error.status === 0) {
+          mensaje = 'No se pudo conectar con Spring Boot.';
+        }
+
+        this.mostrarToast(mensaje, true);
+
+        if (error.status === 409 || error.status === 404) {
+          this.cargarCartelera();
+        }
+
         this.cdr.detectChanges();
       }
     });
@@ -170,36 +336,73 @@ export class Compras implements OnInit {
     window.print();
   }
 
-  mostrarToast(mensaje: string, esError: boolean = false): void {
+
+  mostrarToast(
+    mensaje: string,
+    esError: boolean = false
+  ): void {
+
     this.toastMensaje = mensaje;
     this.toastError = esError;
+
     if (this.toastTimeout) {
       clearTimeout(this.toastTimeout);
     }
+
+    this.cdr.detectChanges();
+
     this.toastTimeout = setTimeout(() => {
+
       this.toastMensaje = '';
       this.cdr.detectChanges();
+
     }, 3500);
   }
 
-  private sanitizarTrailer(trailer: string | null | undefined): SafeResourceUrl | null {
-    if (!trailer || !trailer.trim()) {
+
+  private sanitizarTrailer(
+    trailer: string | null | undefined
+  ): SafeResourceUrl | null {
+
+    if (!trailer?.trim()) {
       return null;
     }
 
-    const raw = trailer.trim();
-    let embedUrl = raw;
+    const valor = trailer.trim();
+    let videoId: string | null = null;
 
-    // Soporta ID directo de YouTube (11 caracteres), enlace watch?v=, youtu.be/ o enlace /embed/
-    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) {
-      embedUrl = `https://www.youtube.com/embed/${raw}`;
+    if (/^[a-zA-Z0-9_-]{11}$/.test(valor)) {
+      videoId = valor;
     } else {
-      const match = raw.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (match && match[1]) {
-        embedUrl = `https://www.youtube.com/embed/${match[1]}`;
+      try {
+        const url = new URL(valor);
+
+        const host = url.hostname.toLowerCase();
+
+        if (
+          host === 'youtube.com' ||
+          host === 'www.youtube.com' ||
+          host === 'm.youtube.com'
+        ) {
+          if (url.pathname === '/watch') {
+            videoId = url.searchParams.get('v');
+          } else if (url.pathname.startsWith('/embed/')) {
+            videoId = url.pathname.split('/')[2];
+          }
+        } else if (host === 'youtu.be') {
+          videoId = url.pathname.slice(1).split('/')[0];
+        }
+      } catch {
+        return null;
       }
     }
 
-    return this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+    if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      return null;
+    }
+
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://www.youtube.com/embed/${videoId}`
+    );
   }
 }

@@ -1,0 +1,195 @@
+
+<section class="dashboard">
+
+  <!-- ENCABEZADO -->
+  <header class="dashboard-header">
+    <div>
+      <span class="eyebrow">BLACKSCREEN / DASHBOARD</span>
+      <h1>Panel de Administración</h1>
+      <p>
+        Resumen general de las películas, funciones
+        y ventas registradas en el cine.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="refresh-button"
+      (click)="cargarDashboard()"
+      [disabled]="cargando"
+    >
+      {{ cargando ? 'Actualizando...' : 'Actualizar datos' }}
+    </button>
+  </header>
+
+  @if (errorMensaje) {
+    <div class="dashboard-error" role="alert">
+      {{ errorMensaje }}
+    </div>
+  }
+
+  <!-- ESTADÍSTICAS -->
+  <div class="stats-grid">
+
+    <article class="stat-card">
+      <div class="stat-heading">
+        <span>Películas</span>
+        <span class="stat-icon">▶</span>
+      </div>
+
+      <strong>{{ totalPeliculas }}</strong>
+      <small>Registradas en cartelera</small>
+    </article>
+
+    <article class="stat-card">
+      <div class="stat-heading">
+        <span>Funciones</span>
+        <span class="stat-icon">▣</span>
+      </div>
+
+      <strong>{{ totalFunciones }}</strong>
+      <small>Funciones programadas</small>
+    </article>
+
+    <article class="stat-card">
+      <div class="stat-heading">
+        <span>Boletos vendidos</span>
+        <span class="stat-icon">🎟</span>
+      </div>
+
+      <strong>{{ totalBoletos }}</strong>
+      <small>Entradas registradas</small>
+    </article>
+
+    <article class="stat-card revenue-card">
+      <div class="stat-heading">
+        <span>Ingresos registrados</span>
+        <span class="stat-icon">$</span>
+      </div>
+
+      <strong>
+        {{ totalIngresos | currency:'COP':'symbol':'1.0-0' }}
+      </strong>
+
+      <small>Total de las compras</small>
+    </article>
+
+  </div>
+
+  <!-- ACCESOS RÁPIDOS -->
+  <section class="dashboard-panel">
+
+    <div class="panel-heading">
+      <h2>Accesos rápidos</h2>
+      <p>Administra las principales operaciones del cine.</p>
+    </div>
+
+    <div class="quick-grid">
+
+      <a routerLink="/peliculas" class="quick-card">
+        <span class="quick-icon">▶</span>
+        <strong>Gestionar películas</strong>
+        <small>Consultar y administrar el catálogo</small>
+        <span class="quick-arrow">→</span>
+      </a>
+
+      <a routerLink="/funciones" class="quick-card">
+        <span class="quick-icon">▣</span>
+        <strong>Programar funciones</strong>
+        <small>Administrar horarios, precios y cupos</small>
+        <span class="quick-arrow">→</span>
+      </a>
+
+      <a routerLink="/compras" class="quick-card">
+        <span class="quick-icon">🎟</span>
+        <strong>Registrar compra</strong>
+        <small>Vender boletos a los clientes</small>
+        <span class="quick-arrow">→</span>
+      </a>
+
+      <a routerLink="/historial" class="quick-card">
+        <span class="quick-icon">◷</span>
+        <strong>Historial de ventas</strong>
+        <small>Consultar ventas y recaudos</small>
+        <span class="quick-arrow">→</span>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ÚLTIMAS COMPRAS -->
+  <section class="dashboard-panel">
+
+    <div class="panel-heading heading-row">
+      <div>
+        <h2>Ventas recientes</h2>
+        <p>Las últimas cinco compras registradas.</p>
+      </div>
+
+      <a routerLink="/historial" class="history-link">
+        Ver historial completo →
+      </a>
+    </div>
+
+    <div class="table-container">
+      <table class="recent-table">
+
+        <thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Cliente</th>
+            <th>Película</th>
+            <th>Boletos</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @if (cargando) {
+            <tr>
+              <td colspan="5" class="empty-cell">
+                Cargando ventas recientes...
+              </td>
+            </tr>
+          } @else {
+            @for (compra of ultimasCompras; track compra.id) {
+              <tr>
+                <td class="ticket-id">
+                  #{{ compra.id }}
+                </td>
+
+                <td>
+                  {{ compra.nombreCliente || 'Sin nombre' }}
+                </td>
+
+                <td>
+                  {{ compra.funcion?.pelicula?.titulo || 'No disponible' }}
+                </td>
+
+                <td>
+                  {{ compra.cantidadBoletos }}
+                </td>
+
+                <td class="amount">
+                  {{
+                    (compra.valorTotal ?? compra.total ?? 0)
+                    | currency:'COP':'symbol':'1.0-0'
+                  }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="empty-cell">
+                  No hay compras registradas todavía.
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+
+      </table>
+    </div>
+
+  </section>
+
+</section>

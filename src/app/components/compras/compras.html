@@ -12,7 +12,7 @@
       </div>
       <div class="card-body">
         <div class="meta">
-          <span>{{ pelicula.duracion }} min</span>
+          <span>{{ pelicula.duracion }}</span>
           <span>Clasificación {{ pelicula.clasificacion }}</span>
         </div>
         <button class="btn" type="button" (click)="abrirModal(pelicula)">
@@ -49,7 +49,7 @@
         <p class="synopsis">
           {{ peliculaSeleccionada.sinopsis || 'Disfruta esta proyección en pantalla gigante con sonido envolvente en BlackScreen Cinema.' }}
           <br><br>
-          {{ peliculaSeleccionada.genero }} &middot; {{ peliculaSeleccionada.duracion }} min &middot; Clasificación {{ peliculaSeleccionada.clasificacion }}
+          {{ peliculaSeleccionada.genero }} &middot; {{ peliculaSeleccionada.duracion }}&middot; Clasificación {{ peliculaSeleccionada.clasificacion }}
         </p>
 
         <div class="section-title">Compra de Boletos (Admisión General)</div>
@@ -70,7 +70,22 @@
               }
             </select>
           </div>
+          <div class="form-field">
+            <label for="nombreCliente">
+              Nombre del cliente
+            </label>
 
+            <input
+              id="nombreCliente"
+              type="text"
+              name="nombreCliente"
+              [(ngModel)]="compraActual.nombreCliente"
+              placeholder="Escribe el nombre completo del cliente"
+              maxlength="100"
+              autocomplete="name"
+              required
+            >
+          </div>
           <div class="field">
             <label for="inputCantidad">Cantidad de boletas</label>
             <input

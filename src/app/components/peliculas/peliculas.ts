@@ -15,7 +15,7 @@ export class PeliculasComponent implements OnInit {
   peliculaActual: any = {
     titulo: '',
     genero: '',
-    duracion: null,
+    duracion: '',
     clasificacion: '',
     posterUrl: '',
     trailerUrl: '',
@@ -37,16 +37,44 @@ export class PeliculasComponent implements OnInit {
   }
 
   guardarPelicula(): void {
+
+    const pelicula = {
+      titulo: this.peliculaActual.titulo,
+      genero: this.peliculaActual.genero,
+      duracion: this.peliculaActual.duracion,
+      clasificacion: this.peliculaActual.clasificacion
+    };
+
     if (this.editando) {
-      this.apiService.actualizarPelicula(this.peliculaActual.id, this.peliculaActual).subscribe(() => {
-        this.cargarPeliculas();
-        this.resetForm();
-      });
+
+      this.apiService
+        .actualizarPelicula(this.peliculaActual.id, pelicula)
+        .subscribe({
+          next: () => {
+            this.cargarPeliculas();
+            this.resetForm();
+          },
+          error: (error) => {
+            console.error('Error al actualizar película:', error);
+            alert(error.error?.mensaje || 'No se pudo actualizar la película');
+          }
+        });
+
     } else {
-      this.apiService.crearPelicula(this.peliculaActual).subscribe(() => {
-        this.cargarPeliculas();
-        this.resetForm();
-      });
+
+      this.apiService
+        .crearPelicula(pelicula)
+        .subscribe({
+          next: () => {
+            this.cargarPeliculas();
+            this.resetForm();
+          },
+          error: (error) => {
+            console.error('Error al registrar película:', error);
+            alert(error.error?.mensaje || 'No se pudo registrar la película');
+          }
+        });
+
     }
   }
 
@@ -56,16 +84,28 @@ export class PeliculasComponent implements OnInit {
   }
 
   eliminar(id: number): void {
-    this.apiService.eliminarPelicula(id).subscribe(() => {
-      this.cargarPeliculas();
-    });
+
+  if (!confirm('¿Estás seguro de eliminar esta película?')) {
+    return;
   }
+
+  this.apiService.eliminarPelicula(id).subscribe({
+    next: () => {
+      alert('Película eliminada correctamente');
+      this.cargarPeliculas();
+    },
+    error: (error) => {
+      alert(error.error?.mensaje || 'Error al eliminar la película');
+      console.error(error);
+    }
+  });
+}
 
   resetForm(): void {
     this.peliculaActual = {
       titulo: '',
       genero: '',
-      duracion: null,
+      duracion: '',
       clasificacion: '',
       posterUrl: '',
       trailerUrl: '',
